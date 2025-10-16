@@ -83,13 +83,13 @@ async def main():
     print("===== 流式调用结果 =====")
     async for chunk in client.invoke_stream(session_id, "今天天气怎么样？", True):
         if chunk["type"] == "model":
-            print(f"🤖 模型推理：{chunk['content']}")
+            print(f"🤖 模型推理：{chunk['content']}", flush=True)
         elif chunk["type"] == "tool":
             print(f"🔧 {chunk['content']}")
         elif chunk["type"] == "result":
-            print(f"✅ 最终回答：{chunk['content']}")
+            print(f"✅ 最终回答：{chunk['content']}", flush=True)
         else:
-            print(f"❌ {chunk['content']}")
+            print(f"❌ {chunk['content']}", flush=True)
 
     print("\n===== 会话历史 =====")
     history = await client.get_history(session_id)
