@@ -1,5 +1,6 @@
 import time
 import asyncio
+import uuid
 from typing import Iterator, AsyncIterator, List, Optional
 
 from langchain_core.language_models import BaseChatModel
@@ -39,10 +40,10 @@ class MockLLM(BaseChatModel):
                     "args": {"location": "上海"},
                     "id": "tool_call_1"
                 })
-                time.sleep(1)
+                time.sleep(0.1)
                 response_content = f"将要调用{first_tool.name}工具查询信息..."
             else:
-                time.sleep(1)
+                time.sleep(0.1)
                 response_content = f"你的问题我无法回答..."
         else:
             response_content = f"查询结果：{tool_messages[-1].content}" if tool_messages else "未找到信息"
@@ -66,15 +67,25 @@ class MockLLM(BaseChatModel):
     # --------------------------------------
     async def astream(self, messages, **kwargs) -> AsyncIterator[ChatGenerationChunk]:
 
-        yield ChatGenerationChunk(message=AIMessageChunk(content="Thinking ..."))
-        """异步流式输出：逐字返回 ChatGenerationChunk"""
-        result = self._generate(messages, **kwargs)
-        full_text = result.generations[0].message.content
-        yield ChatGenerationChunk(message=AIMessageChunk(content="Reasoning result is as follows:"))
-        for ch in full_text:
+        for ch in "Thinking ...\n":
             await asyncio.sleep(0.1)
             yield ChatGenerationChunk(message=AIMessageChunk(content=ch))
 
+        """异步流式输出：逐字返回 ChatGenerationChunk"""
+        result = self._generate(messages, **kwargs)
+        full_text = result.generations[0].message.content
+        tmp = None
+        for ch in full_text:
+            await asyncio.sleep(0.1)
+            tool_calls = result.generations[0].message.tool_calls
+            # 以Chunk的形式返回消息，Agent的State会自动将一次交互的Chunk merge成一个AIMessage，
+            # 默认的merge逻辑是取最后一个，这个merge其实是一个reduce函数，逻辑大致是：(a, b)->b
+            # 但是我们可以自定义merge逻辑，例如将content拼接，tool_calls只保留最后一个Chunk的tool_calls
+            yield ChatGenerationChunk(message=AIMessageChunk(content=ch))
+            if  tool_calls:
+                tmp = tool_calls
+        if tmp:
+            yield ChatGenerationChunk(message=AIMessageChunk(content="", tool_calls=tmp))
     # --------------------------------------
     # 4️⃣ 类型标识 + 工具绑定
     # --------------------------------------
