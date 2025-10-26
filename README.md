@@ -4,3 +4,4 @@ v00: AsyncIterator[ChatResult]
 v000: AsyncIterator[ChatGenerationChunk]
 
 v3_1: 从agent--->client的stream调通，state的messages都完整
+v5: 前端支持streamable output
